@@ -1,100 +1,50 @@
 import streamlit as st
-import random
 
-# --- 페이지 설정 ---
-st.set_page_config(page_title="가위바위보 게임", page_icon="🎮")
+# 페이지 설정
+st.set_page_config(page_title="모임 회비 관리 계산기", page_icon="💰")
 
-# --- 세션 상태 초기화 (전적 저장용) ---
-if 'win' not in st.session_state:
-    st.session_state.win = 0
-if 'lose' not in st.session_state:
-    st.session_state.lose = 0
-if 'draw' not in st.session_state:
-    st.session_state.draw = 0
-if 'last_result' not in st.session_state:
-    st.session_state.last_result = ""
-if 'battle_info' not in st.session_state:
-    st.session_state.battle_info = "게임을 시작합니다!"
+# 제목 및 설명
+st.title("모임 회비 관리 계산기")
+st.write("총 금액, 인원 수, 팁 비율을 입력하여 1인당 부담할 금액을 계산합니다.")
 
+# 화면을 두 칸으로 나눕니다 (왼쪽: 입력, 오른쪽: 결과)
+col_input, col_result = st.columns(2)
 
-# --- 함수 정의 ---
-def play(user_choice):
-    options = ['Rock', 'Paper', 'Scissors']
-    computer_choice = random.choice(options)
+with col_input:
+    st.subheader("입력 정보")
+    # 총 금액 입력
+    total_bill = st.number_input("총 금액 (원)", min_value=0, value=100000, step=1000)
+    
+    # 인원 수 입력
+    num_people = st.number_input("인원 수 (명)", min_value=1, value=4, step=1)
+    
+    # 팁/서비스 비율 슬라이더
+    tip_percentage = st.slider("팁/서비스 비율 (%)", min_value=0, max_value=20, value=10)
 
-    # 치트키 로직 (Streamlit 사이드바에 배치 예정)
-    if st.session_state.get('cheat_mode'):
-        st.toast(f"🤫 컴퓨터의 선택은 {computer_choice}였습니다!")
+# 계산 로직
+total_tip = total_bill * (tip_percentage / 100)
+final_total = total_bill + total_tip
+per_person = final_total / num_people
 
-    # 승패 판정
-    if user_choice == computer_choice:
-        st.session_state.last_result = "비겼습니다! 😐"
-        st.session_state.draw += 1
-    elif (user_choice == 'Scissors' and computer_choice == 'Paper') or \
-            (user_choice == 'Rock' and computer_choice == 'Scissors') or \
-            (user_choice == 'Paper' and computer_choice == 'Rock'):
-        st.session_state.last_result = "당신이 이겼습니다! 😊"
-        st.session_state.win += 1
-    else:
-        st.session_state.last_result = "당신이 졌습니다... 😭"
-        st.session_state.lose += 1
+with col_result:
+    st.subheader("계산 결과")
+    # 결과 창 디자인 (회색 배경 느낌을 주기 위해 container 사용)
+    with st.container(border=True):
+        st.write("1인당 금액 (원)")
+        st.title(f"{per_person:,.0f}")
+        
+        st.write("팁 포함 총 금액 (원)")
+        st.subheader(f"{final_total:,.0f}")
 
-    st.session_state.battle_info = f"나: {user_choice} vs 컴퓨터: {computer_choice}"
+# 하단 버튼 레이아웃
+st.divider()
+col_btn1, col_btn2 = st.columns([1, 1])
 
-
-def reset_game():
-    st.session_state.win = 0
-    st.session_state.lose = 0
-    st.session_state.draw = 0
-    st.session_state.last_result = ""
-    st.session_state.battle_info = "게임을 시작합니다!"
-
-
-# --- UI 레이아웃 ---
-st.title("✊✌️🖐️ 가위바위보 게임")
-
-# 사이드바 설정 (치트키 및 설정)
-with st.sidebar:
-    st.header("설정")
-    st.session_state.cheat_mode = st.checkbox("컴퓨터 패 미리보기 (치트키)")
-    st.divider()
-    if st.button("전적 초기화 (Reset)", on_click=reset_game):
+with col_btn1:
+    if st.button("Clear", use_container_width=True):
         st.rerun()
 
-# 전적 표시 (상단 대시보드)
-col1, col2, col3 = st.columns(3)
-col1.metric("승리", f"{st.session_state.win}회")
-col2.metric("패배", f"{st.session_state.lose}회")
-col3.metric("무승부", f"{st.session_state.draw}회")
-
-st.divider()
-
-# 사용자 선택 버튼
-st.subheader("당신의 선택은?")
-c1, c2, c3 = st.columns(3)
-if c1.button("가위 (Scissors)", use_container_width=True):
-    play("Scissors")
-if c2.button("바위 (Rock)", use_container_width=True):
-    play("Rock")
-if c3.button("보 (Paper)", use_container_width=True):
-    play("Paper")
-
-# 결과 화면
-st.write(f"### {st.session_state.battle_info}")
-if st.session_state.last_result:
-    if "이겼습니다" in st.session_state.last_result:
-        st.success(st.session_state.last_result)
-    elif "졌습니다" in st.session_state.last_result:
-        st.error(st.session_state.last_result)
-    else:
-        st.info(st.session_state.last_result)
-
-# 자동 대결 영역
-st.divider()
-st.subheader("연속 자동 대결")
-count = st.radio("대결 횟수 선택", ["3", "5", "10"], horizontal=True)
-if st.button(f"{count}회 자동 대결 시작"):
-    options = ['Rock', 'Paper', 'Scissors']
-    for _ in range(int(count)):
-        play(random.choice(options))
-    st.rerun()
+with col_btn2:
+    # Streamlit은 입력값이 바뀔 때마다 실시간 계산되므로 
+    # Submit 버튼은 시각적인 확인 용도로 배치합니다.
+    st.button("Submit", type="primary", use_container_width=True)
